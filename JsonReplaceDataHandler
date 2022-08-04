@@ -1,0 +1,43 @@
+public class JsonReplaceDataHandler {
+    
+    private List<String> pathList;
+    private Integer pathListIndex;
+    private Object eachNodeValue;
+    
+    public String replaceData(String reconciledJson, String complexJsonStr){ // reconciledJson contains path as key and the value to be replaced at that path, complexJsonStr is the actual Complex Json
+        
+        pathListIndex = 0;
+        Object complexJson = JSON.deserializeUntyped(complexJsonStr);     
+        Map<String, Object> reconciledMap = (Map<String, Object>) JSON.deserializeUntyped(reconciledJson);
+        
+        for(String key : reconciledMap.keySet()){
+            eachNodeValue = reconciledMap.get(key);
+            key = key.substring(1,key.length());
+            pathList = key.split('/');
+            complexJson = callInnerNode(complexJson);
+            pathListIndex = 0;              
+        }
+        return Json.serialize(complexJson);
+    }
+    
+    private Object callInnerNode(Object jObject){
+        if(pathListIndex < pathList.size()){
+            String path = pathList.get(pathListIndex);
+            pathListIndex++;
+            if(!path.contains('[') && !path.contains(']')){
+                Map<String, Object> jsonObj = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(jObject)); 
+                Object data = callInnerNode(jsonObj.get(path));
+                jsonObj.put(path, data);
+                return jsonObj;          
+            }else{
+                Integer intPath = Integer.valueOf(path.remove('[').remove(']')) - 1;
+                List<Object> jsonArr = (List<Object>) JSON.deserializeUntyped(JSON.serialize(jObject));
+                Object data = callInnerNode(jsonArr.get(intPath));
+                jsonArr.set(intPath, data);
+                return jsonArr;  
+            }     
+        } 
+        return eachNodeValue;
+    }
+
+}
